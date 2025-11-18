@@ -140,6 +140,60 @@ if (req.body.main_image && !req.file) {
     res.status(200).send(house);
 });
 
+app.put("/api/houses/:id", upload.single("img"), (req, res)=>{
+    const house = houses.find((h)=>h._id===parseInt(req.params.id));
+    
+    if(!house) {
+        res.status(404).send("The house you wanted to edit is unavailable");
+        return;
+    }
+
+    const isValidUpdate = validateHouse(req.body);
+
+    if(isValidUpdate.error){
+        console.log("Invalid Info", isValidUpdate.error.details[0].message);
+        res.status(400).send(isValidUpdate.error.details[0].message);
+        return;
+    }
+
+    house.name = req.body.name;
+    house.size = Number(req.body.size);
+    house.bathrooms = Number(req.body.bathrooms);
+    house.bedrooms = Number(req.body.bedrooms);
+
+    // Handle features
+    if (req.body.features) {
+        house.features = Array.isArray(req.body.features)
+            ? req.body.features
+            : req.body.features.split(",").map((feature) => feature.trim()).filter(Boolean);
+    }
+
+    // Handle main_image if provided in body (without file upload)
+    if (req.body.main_image && !req.file) {
+        house.main_image = req.body.main_image;
+    }
+
+    // Handle image upload
+    if(req.file){
+        house.main_image = req.file.filename;
+    }
+
+    res.status(200).send(house);
+});
+
+app.delete("/api/houses/:id", (req,res)=>{
+    const house = houses.find((h)=>h._id===parseInt(req.params.id));
+    
+    if(!house) {
+        res.status(404).send("The house you wanted to delete is unavailable");
+        return;
+    }
+
+    const index = houses.indexOf(house);
+    houses.splice(index, 1);
+    res.status(200).send(house);
+});
+
 const validateHouse = (house) => {
     const schema = Joi.object({
         _id:Joi.allow(""),
